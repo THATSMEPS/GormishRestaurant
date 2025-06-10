@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #7f41e3;
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-bottom: env(safe-area-inset-bottom);
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  @apply bg-gray-50;
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent pull-to-refresh on iOS */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
+/* Improve touch targets for mobile */
+button, a, input, select {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+/* Mobile-first padding adjustments */
+.responsive-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Enhanced Input Field Styles */
+.input-field {
+  @apply w-full px-4 py-3 rounded-lg border border-gray-200 bg-white
+    text-gray-900 placeholder-gray-400
+    focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
+    disabled:bg-gray-50 disabled:text-gray-500
+    transition-all duration-200 ease-in-out;
+  min-height: 44px; /* Better touch targets */
+}
+
+.input-field[type="time"] {
+  @apply cursor-pointer;
+}
+
+.input-field[type="tel"] {
+  @apply tracking-wide pl-16;
+}
+
+.input-field[multiple] {
+  @apply h-32;
+}
+
+select.input-field {
+  @apply appearance-none bg-no-repeat bg-right pr-10 cursor-pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-size: 1.5rem;
+}
+
+textarea.input-field {
+  @apply resize-none min-h-[100px];
+}
+
+/* Form Label Styles */
+.form-label {
+  @apply block text-sm font-medium text-gray-700 mb-1.5;
+}
+
+/* Input Group Styles */
+.input-group {
+  @apply relative;
+}
+
+.input-group .input-field {
+  @apply pl-11;
+}
+
+.input-group-icon {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none;
+}
+
+.btn-primary {
+  @apply bg-primary text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium 
+    hover:bg-opacity-90 active:bg-opacity-100
+    focus:outline-none focus:ring-2 focus:ring-primary/20
+    disabled:opacity-50 disabled:cursor-not-allowed
+    transition-all duration-200 
+    flex items-center justify-center gap-2 
+    whitespace-nowrap text-sm sm:text-base
+    min-h-[44px]; /* Better touch targets */
+}
+
+.btn-secondary {
+  @apply bg-white text-primary border border-primary px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium 
+    hover:bg-primary hover:text-white 
+    focus:outline-none focus:ring-2 focus:ring-primary/20
+    disabled:opacity-50 disabled:cursor-not-allowed
+    transition-all duration-200 text-sm sm:text-base
+    min-h-[44px]; /* Better touch targets */
+}
+
+/* Mobile Navigation */
+.mobile-nav {
+  @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 
+    p-2 sm:p-4 z-50 shadow-lg;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+}
+
+/* Improved touch targets for mobile navigation */
+.mobile-nav button {
+  @apply min-h-[44px] min-w-[44px];
+}
+
+/* Modal adjustments for mobile */
+.modal-content {
+  @apply max-h-[90vh] w-full max-w-lg mx-4 rounded-t-xl sm:rounded-xl;
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+/* Prevent text selection during taps */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in input fields */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
