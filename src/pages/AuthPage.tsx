@@ -7,7 +7,7 @@ import AuthLayout from '../components/layouts/AuthLayout';
 import LoginForm from '../components/auth/LoginForm';
 import SignupForm from '../components/auth/SignupForm';
 import Button from '../components/ui/Button';
-import api, { uploadBannerImage } from '../utils/api';
+import api, { uploadBannerImage, uploadBannerImageSignup } from '../utils/api';
 import { AuthResponse, Restaurant } from '../types/Restaurant';
 
 // Add these types at the top of the file
@@ -43,8 +43,14 @@ const AuthPage = () => {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
-  const [address, setAddress] = useState('');
-  const [servingRadius, setServingRadius] = useState('');
+  const [address, setAddress] = useState({
+    street: '',
+    landmark: '',
+    area: '',
+    fullAddress: ''
+  });
+  
+  const [serving_radius, setserving_radius] = useState('');
   const [cuisines, setCuisines] = useState<{ value: string; label: string }[]>([]);
   const [vegNonVeg, setVegNonVeg] = useState<string>('both');
   const [banners, setBanners] = useState<File[]>([]);
@@ -59,6 +65,7 @@ const AuthPage = () => {
   });
   const [areas, setAreas] = useState<Area[]>([]);
   const [selectedAreaId, setSelectedAreaId] = useState<string>('');
+  const [selectedAreaCoordinates, setSelectedAreaCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const saved = localStorage.getItem('isLoggedIn');
     return saved ? JSON.parse(saved) : false;
@@ -80,8 +87,9 @@ const AuthPage = () => {
       setSignupEmail(parsed.signupEmail || '');
       setSignupPassword(parsed.signupPassword || '');
       setMobileNumber(parsed.mobileNumber || '');
-      setAddress(parsed.address || '');
-      setServingRadius(parsed.servingRadius || '');
+      
+      setAddress(parsed.address || { street: '', landmark: '', area: '', fullAddress: '' });
+      setserving_radius(parsed.serving_radius || '');
       setCuisines(parsed.cuisines || []);
       setVegNonVeg(parsed.vegNonVeg || 'both');
       setBanners(parsed.banners || []);
@@ -106,7 +114,7 @@ const AuthPage = () => {
       signupPassword,
       mobileNumber,
       address,
-      servingRadius,
+      serving_radius,
       cuisines,
       vegNonVeg,
       banners,
@@ -114,7 +122,7 @@ const AuthPage = () => {
       selectedAreaId
     };
     localStorage.setItem('signupFormState', JSON.stringify(signupState));
-  }, [restaurantName, signupEmail, signupPassword, mobileNumber, address, servingRadius, cuisines, vegNonVeg, banners, hours, selectedAreaId]);
+  }, [restaurantName, signupEmail, signupPassword, mobileNumber, address, serving_radius, cuisines, vegNonVeg, banners, hours, selectedAreaId]);
 
   // On mount, check for verification token in URL and switch to signup mode if present
   useEffect(() => {
@@ -145,7 +153,13 @@ const AuthPage = () => {
         }));
         setAreas(mappedAreas);
         if (mappedAreas.length > 0) {
-          setSelectedAreaId(mappedAreas[0].id);
+          const defaultArea = mappedAreas.find(area => area.name === 'Kudasan') || mappedAreas[0];
+          setSelectedAreaId(defaultArea.id);
+          setAddress(prev => ({ ...prev, area: defaultArea.name }));
+          setSelectedAreaCoordinates({
+            latitude: defaultArea.latitude,
+            longitude: defaultArea.longitude
+          });
         }
       } catch (error) {
         console.error('[AuthPage] Failed to fetch areas:', error);
@@ -155,6 +169,16 @@ const AuthPage = () => {
     fetchAreas();
   }, []);
 
+  useEffect(() => {
+    const selectedArea = areas.find(area => area.id === selectedAreaId);
+    if (selectedArea) {
+      setSelectedAreaCoordinates({
+        latitude: selectedArea.latitude,
+        longitude: selectedArea.longitude
+      });
+      setAddress(prev => ({ ...prev, area: selectedArea.name }));
+    }
+  }, [selectedAreaId, areas]);
 
   // Persist state to localStorage
   useEffect(() => {
@@ -297,7 +321,7 @@ const AuthPage = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!restaurantName || !signupEmail || !signupPassword || !mobileNumber || !address || !servingRadius || !selectedAreaId) {
+    if (!restaurantName || !signupEmail || !signupPassword || !mobileNumber || !address || !serving_radius || !selectedAreaId) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -310,10 +334,13 @@ const AuthPage = () => {
         password: signupPassword,
         mobile: mobileNumber,
         address: {
-          street: address,
-          city: 'Ahmedabad',
+          street: address.street,
+          landmark: address.landmark,
+          area: address.area,
+          fullAddress: address.fullAddress,
+          city: 'Gandhinagar',
           state: 'Gujarat',
-          pincode: '380001'
+          pincode: '382007'
         },
         cuisines: cuisines.map(c => c.value).join(', '),
         vegNonveg: vegNonVeg,
@@ -321,7 +348,7 @@ const AuthPage = () => {
         areaId: selectedAreaId,
         banners: [], // empty banners array
         applicableTaxBracket: 5.0,
-        servingRadius: parseFloat(servingRadius)
+        serving_radius: parseInt(serving_radius)
       });
 
       const { data } = response.data;
@@ -337,12 +364,18 @@ const AuthPage = () => {
         return;
       }
 
-      // Then upload banners if any using uploadBannerImage from api.ts
+      setToken(token);
+      setIsLoggedIn(true);
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('restaurantId', restaurant.id);
+      localStorage.setItem('restaurant', JSON.stringify(restaurant));
+
+      // Then upload banners if any using uploadBannerImageSignup after setting token
       if (banners.length > 0) {
         try {
           const uploadedBannerUrls: string[] = [];
           for (const bannerFile of banners) {
-            const bannerUrl = await uploadBannerImage(restaurant.id, bannerFile);
+            const bannerUrl = await uploadBannerImageSignup(bannerFile);
             uploadedBannerUrls.push(bannerUrl);
           }
           console.log('[AuthPage] Uploaded banner URLs:', uploadedBannerUrls);
@@ -354,11 +387,6 @@ const AuthPage = () => {
         }
       }
 
-      setToken(token);
-      setIsLoggedIn(true);
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('restaurantId', restaurant.id);
-      localStorage.setItem('restaurant', JSON.stringify(restaurant));
       window.ReactNativeWebView?.postMessage(
         JSON.stringify({ type: 'LOGIN', token })
       );
@@ -412,12 +440,14 @@ const AuthPage = () => {
       case 'signupPassword': setSignupPassword(value); break;
       case 'mobileNumber': setMobileNumber(value); break;
       case 'address': setAddress(value); break;
-      case 'servingRadius': setServingRadius(value); break;
+      case 'serving_radius': setserving_radius(value); break;
       case 'cuisines': setCuisines(value); break;
       case 'vegNonVeg': setVegNonVeg(value); break;
       case 'banners': setBanners(value); break;
       case 'hours': setHours(value); break;
       case 'areaId': setSelectedAreaId(value); break;
+      case 'selectedAreaId': setSelectedAreaId(value); break;
+      case 'selectedAreaCoordinates': setSelectedAreaCoordinates(value); break;
     }
   };
 
@@ -463,21 +493,14 @@ const AuthPage = () => {
               signupPassword={signupPassword}
               mobileNumber={mobileNumber}
               address={address}
-              servingRadius={servingRadius}
+              serving_radius={serving_radius}
               cuisines={cuisines}
               vegNonVeg={vegNonVeg}
               banners={banners}
               hours={hours}
               areas={areas}
               selectedAreaId={selectedAreaId}
-              selectedAreaCoordinates={
-                areas.find(area => area.id === selectedAreaId)
-                  ? {
-                      latitude: areas.find(area => area.id === selectedAreaId)!.latitude,
-                      longitude: areas.find(area => area.id === selectedAreaId)!.longitude,
-                    }
-                  : null
-              }
+              selectedAreaCoordinates={selectedAreaCoordinates}
               onSubmit={handleSignup}
               onChange={handleSignupFormChange}
               verificationToken={verificationToken}

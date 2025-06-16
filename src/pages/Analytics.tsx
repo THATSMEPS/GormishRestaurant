@@ -240,7 +240,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ restaurantId }) => {
   };
 
   // Transform selectedOrder to match OrderDetailsModalProps type
-  const getModalOrder = () => {
+const getModalOrder = () => {
     if (!selectedOrder) return null;
     let addressString = 'Address not available';
     if (selectedOrder.address) {
@@ -258,7 +258,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ restaurantId }) => {
       items: selectedOrder.items?.map((item: any) => ({
         name: item.menuItem?.name || item.name || '',
         quantity: item.quantity,
-        price: typeof item.totalPrice === 'number' ? item.totalPrice : 0,
+        basePrice: Number(item.basePrice ?? item.price ?? item.totalPrice ?? 0),
         addons: item.addons?.map((addon: any) => ({
           name: addon.name,
           price: addon.price || 0,

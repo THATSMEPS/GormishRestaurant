@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import toast from 'react-hot-toast';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -20,6 +20,20 @@ export const uploadBannerImage = async (restaurantId: string, file: File): Promi
 
   // Assuming backend returns updated restaurant with banners array
   return response.data.data.banners?.[0] || '';
+};
+
+export const uploadBannerImageSignup = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await api.post('/restaurants/signup/banner', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  // Return publicUrl from response
+  return response.data.data.publicUrl || '';
 };
 
 // Request interceptor to add JWT token

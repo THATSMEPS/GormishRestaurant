@@ -9,7 +9,7 @@ interface OrderDetailsModalProps {
     id: string;
     customer: string;
     address: string;
-    items: { name: string; quantity: number; price: number; addons?: { name: string; price?: number }[] }[];
+    items: { name: string; quantity: number; basePrice: number; addons?: { name: string; price?: number }[] }[];
     total: number;
     timestamp: string;
   } | null;
@@ -53,7 +53,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   </div>
                   <span>{item.name}</span>
                 </div>
-                <span>₹{item.price}</span>
+                <span>₹{item.basePrice}</span>
               </div>
               {item.addons && item.addons.length > 0 && (
                 <ul className="ml-8 text-gray-600 text-sm list-disc">

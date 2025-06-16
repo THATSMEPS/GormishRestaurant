@@ -179,7 +179,7 @@ const RecentOrdersTable: React.FC<RecentOrdersTableProps> = ({
                   items: order.items?.map((item) => ({
                     name: item.menuItem?.name || item.menuItemId,
                     quantity: item.quantity,
-                    price: typeof item.totalPrice === 'number' ? item.totalPrice : 0,
+                    price: typeof item.basePrice === 'string' ? item.basePrice : 0,
                   })) || [],
                   total: order.total,
                   status: order.status,

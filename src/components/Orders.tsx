@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { io, Socket } from 'socket.io-client';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import OrdersHeader from './orders/OrdersHeader';
@@ -73,17 +72,37 @@ const Orders: React.FC<OrdersProps> = ({ restaurantId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    let socket: Socket | null = null;
+    let isMounted = true;
+    let cacheTimestamp = 0;
+    let cachedOrders: OrderWithStringAddress[] = [];
+    const pollingInterval = 5000; // 5 seconds
+    const cacheDuration = 5 * 60 * 1000; // 5 minutes
 
-    const fetchInitialOrders = async () => {
-      setIsLoading(true);
+    const fetchOrders = async (forceFetch = false) => {
+      if (!isMounted) return;
+      const now = Date.now();
+      if (!forceFetch && cachedOrders.length > 0 && (now - cacheTimestamp) < cacheDuration) {
+        // Use cached orders
+        setOrders(cachedOrders);
+        return;
+      }
+      // Show loader only on initial fetch, not on polling
+      if (!forceFetch) {
+        setIsLoading(true);
+      }
       try {
         const response = await api.get(`/orders/restaurant/${restaurantId}`);
         const apiOrders = response.data.data;
         const mappedOrders = apiOrders.map((order: any) => {
-          // Convert address object to string if needed
           let addressString = 'Address not available';
-          if (order.customer?.address) {
+          if (order.address) {
+            if (typeof order.address === 'string') {
+              addressString = order.address;
+            } else if (typeof order.address === 'object') {
+              const addr = order.address as { typedAddress?: string; mappedAddress?: string };
+              addressString = addr.typedAddress || addr.mappedAddress || JSON.stringify(order.address);
+            }
+          } else if (order.customer?.address) {
             if (typeof order.customer.address === 'string') {
               addressString = order.customer.address;
             } else if (typeof order.customer.address === 'object') {
@@ -119,7 +138,45 @@ const Orders: React.FC<OrdersProps> = ({ restaurantId }) => {
             deliveryPartner: order.deliveryPartner,
           };
         });
-        setOrders(mappedOrders);
+
+        // Merge new orders into cachedOrders, keep user-updated statuses
+        const mergedOrdersMap = new Map<string, OrderWithStringAddress>();
+        // Add cached orders first
+        cachedOrders.forEach(order => {
+          mergedOrdersMap.set(order.id, order);
+        });
+        // Add/overwrite with fetched orders, but keep status from cached if user updated
+        mappedOrders.forEach((fetchedOrder: OrderWithStringAddress) => {
+          const cachedOrder = mergedOrdersMap.get(fetchedOrder.id);
+          if (cachedOrder) {
+            // If status changed by user, keep cached status
+            if (cachedOrder.status !== fetchedOrder.status && cachedOrder.status !== 'pending') {
+              fetchedOrder.status = cachedOrder.status;
+            }
+          }
+          mergedOrdersMap.set(fetchedOrder.id, fetchedOrder);
+        });
+
+        const mergedOrders = Array.from(mergedOrdersMap.values());
+
+        // Compare with cached orders to update only if status changed
+        let hasStatusChanged = false;
+        if (cachedOrders.length === 0) {
+          hasStatusChanged = true;
+        } else {
+          for (const newOrder of mergedOrders) {
+            const cachedOrder = cachedOrders.find(o => o.id === newOrder.id);
+            if (!cachedOrder || cachedOrder.status !== newOrder.status) {
+              hasStatusChanged = true;
+              break;
+            }
+          }
+        }
+        if (hasStatusChanged) {
+          cachedOrders = mergedOrders;
+          cacheTimestamp = now;
+          setOrders(mergedOrders);
+        }
       } catch (error) {
         toast.error('Failed to fetch orders');
       } finally {
@@ -127,86 +184,19 @@ const Orders: React.FC<OrdersProps> = ({ restaurantId }) => {
       }
     };
 
-    fetchInitialOrders();
+    fetchOrders();
 
-    socket = io('http://localhost:3000');
-
-    socket.on('connect', () => {
-      console.log('Socket connected:', socket?.id);
-    });
-
-    socket.on('order:new', (newOrder: Order) => {
-      setOrders(prevOrders => {
-        if (prevOrders.some(order => order.id === newOrder.id)) {
-          return prevOrders;
-        }
-        // Convert newOrder to OrderWithStringAddress
-        let addressString = 'Address not available';
-        if (newOrder.customer?.address) {
-          if (typeof newOrder.customer.address === 'string') {
-            addressString = newOrder.customer.address;
-          } else if (typeof newOrder.customer.address === 'object') {
-            const addr = newOrder.customer.address as { typedAddress?: string; mappedAddress?: string };
-            addressString = addr.typedAddress || addr.mappedAddress || JSON.stringify(newOrder.customer.address);
-          }
-        }
-        const formattedOrder: OrderWithStringAddress = {
-          ...newOrder,
-          status: newOrder.status || 'pending',
-          date: format(new Date(newOrder.placedAt || Date.now()), 'MMM dd, yyyy'),
-          time: format(new Date(newOrder.placedAt || Date.now()), 'hh:mm a'),
-          customerName: newOrder.customer?.name || 'Unknown Customer',
-          address: addressString,
-        };
-        toast.success('New order received!');
-        return [...prevOrders, formattedOrder];
-      });
-    });
-
-socket.on('order:update', (orderUpdate: Order) => {
-  setOrders(prevOrders => {
-    const index = prevOrders.findIndex(order => order.id === orderUpdate.id);
-    if (index !== -1) {
-      // Convert orderUpdate to OrderWithStringAddress
-      let addressString = 'Address not available';
-      if (orderUpdate.customer?.address) {
-        if (typeof orderUpdate.customer.address === 'string') {
-          addressString = orderUpdate.customer.address;
-        } else if (typeof orderUpdate.customer.address === 'object') {
-          const addr = orderUpdate.customer.address as { typedAddress?: string; mappedAddress?: string };
-          addressString = addr.typedAddress || addr.mappedAddress || JSON.stringify(orderUpdate.customer.address);
-        }
+    const intervalId = setInterval(() => {
+      if (activeTab === 'pending') {
+        fetchOrders(true);
       }
-      const formattedOrderUpdate: OrderWithStringAddress = {
-        ...orderUpdate,
-        address: addressString,
-        customerName: orderUpdate.customer?.name || 'Unknown Customer',
-        date: prevOrders[index].date,
-        time: prevOrders[index].time,
-      };
-      return prevOrders.map(order =>
-        order.id === orderUpdate.id
-          ? formattedOrderUpdate
-          : order
-      );
-    }
-    return prevOrders;
-  });
-});
-
-    socket.on('disconnect', () => {
-      // toast.error('Lost connection to server');
-    });
-
-    socket.on('connect_error', (error: any) => {
-      console.error('Socket connection error:', error);
-      toast.error('Connection error');
-    });
+    }, pollingInterval);
 
     return () => {
-      if (socket) socket.disconnect();
+      isMounted = false;
+      clearInterval(intervalId);
     };
-  }, [restaurantId]);
+  }, [restaurantId, activeTab]);
 
   const filteredOrders = orders.filter(order => {
     if (activeTab === 'pending') {
@@ -310,23 +300,23 @@ const orderToCardData = (order: OrderWithStringAddress): OrderCardData => {
   };
 
   // Transform selectedOrder to match OrderDetailsModalProps type
-  const getModalOrder = () => {
+const getModalOrder = () => {
     if (!selectedOrder) return null;
     // Map items and addons properly for modal
     const items = selectedOrder.items.map((item: any) => ({
       name: item.menuItem?.name || 'Unknown',
       quantity: item.quantity || 0,
-      price: Number(item.basePrice) || 0,
+      basePrice: Number(item.price ?? item.totalPrice ?? 0),
       addons: item.addons?.map((addon: any) => ({
         name: addon.name,
-        price: Number(addon.extraPrice) || Number(addon.price) || 0,
+        price: addon.price !== undefined ? Number(addon.price) : (addon.extraPrice !== undefined ? Number(addon.extraPrice) : 0),
       })) || [],
     }));
 
     // Calculate total including add-ons, delivery fee, and gst
     const itemsTotal = items.reduce((sum, item) => {
       const addonsTotal = item.addons.reduce((addonSum: number, addon: { price: number }) => addonSum + addon.price, 0);
-      return sum + item.price * item.quantity + addonsTotal * item.quantity;
+      return sum + item.basePrice * item.quantity + addonsTotal * item.quantity;
     }, 0);
 
     const deliveryFee = Number(selectedOrder.deliveryFee) || 0;

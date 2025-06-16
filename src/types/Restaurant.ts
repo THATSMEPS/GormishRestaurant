@@ -1,5 +1,8 @@
 export interface Address {
   street: string;
+  area?: string;
+  landmark?: string;
+  fullAddress?: string;
   city: string;
   state: string;
   pincode: string;
@@ -33,7 +36,7 @@ export interface Restaurant {
   applicableTaxBracket: number;
   areaId: string;
   approval: boolean;
-  servingRadius?: number;
+  serving_radius?: number;
   restaurantType?: string;
   website?: string;
   gstNumber?: string;

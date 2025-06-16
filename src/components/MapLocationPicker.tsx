@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react'; // useEffect bhi import kiya, added useRef
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Rectangle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Rectangle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin } from 'lucide-react';
+
 
 
 // Use a default Leaflet icon with a custom divIcon using lucide-react icon
@@ -24,15 +24,29 @@ interface MapPickerProps {
   // Callback function jo selected location details return karegi
   onLocationSelect?: (lat: number, lng: number, address: string) => void; // onLocationSelect add kiya tha
   onAreaSelect?: (bounds: L.LatLngBounds) => void; // New callback for area selection
+  isEditing: boolean;
 }
 
+const MapViewUpdater: React.FC<{ initialLat: number; initialLng: number }> = ({ initialLat, initialLng }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (initialLat !== undefined && initialLng !== undefined && map) {
+      map.setView([initialLat, initialLng], map.getZoom());
+    }
+  }, [initialLat, initialLng, map]);
+
+  return null;
+};
+
 const MapLocationPicker: React.FC<MapPickerProps> = ({
-  initialLat = 23.237560, // Default: Gandhinagar, Gujarat ka latitude
-  initialLng = 72.647781, // Default: Gandhinagar, Gujarat ka longitude
+  initialLat = 0, // Default: Gandhinagar
+  initialLng = 0, // Default: Gandhinagar
   initialZoom = 14, // Default zoom level
-  address: propAddress, // Destructure the new address prop
-  onLocationSelect, // Destructure the callback
-  onAreaSelect, // Destructure area select callback
+  address: propAddress,
+  onLocationSelect,
+  onAreaSelect,
+  isEditing,
 }) => {
   const [position, setPosition] = useState<L.LatLngTuple | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -50,33 +64,10 @@ const MapLocationPicker: React.FC<MapPickerProps> = ({
     }
   }, [initialLat, initialLng]);
 
-  /*
-  // Forward geocoding when propAddress changes
-  useEffect(() => {
-    if (propAddress && propAddress.trim() !== '') {
-      fetch(`/api/restaurants/geocode?address=${encodeURIComponent(propAddress)}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data && data.length > 0) {
-            const lat = parseFloat(data[0].lat);
-            const lon = parseFloat(data[0].lon);
-            setPosition([lat, lon]);
-            setAddress(propAddress);
-            if (onLocationSelect) {
-              onLocationSelect(lat, lon, propAddress);
-            }
-          }
-        })
-        .catch(error => {
-          console.error("Error while forward geocoding address:", error);
-        });
-    }
-  }, [propAddress]);
-  */
-
   const MapEventsHandler = () => {
     const map = useMapEvents({
       mousedown: (e) => {
+        if (!isEditing) return;
         console.log('Map mousedown event:', e.latlng);
         e.originalEvent.preventDefault();
         // Start long press timer
@@ -89,6 +80,7 @@ const MapLocationPicker: React.FC<MapPickerProps> = ({
         }, 600); // 600ms for long press
       },
       mouseup: (e) => {
+        if (!isEditing) return;
         console.log('Map mouseup event:', e.latlng);
         // Clear long press timer
         if (longPressTimeoutRef.current) {
@@ -111,6 +103,7 @@ const MapLocationPicker: React.FC<MapPickerProps> = ({
         }
       },
       mousemove: (e) => {
+        if (!isEditing) return;
         if (isDraggingRef.current && startPointRef.current) {
           console.log('Dragging, updating bounds:', e.latlng);
           // Update rectangle bounds while dragging
@@ -119,6 +112,7 @@ const MapLocationPicker: React.FC<MapPickerProps> = ({
         }
       },
       click: (e) => {
+        if (!isEditing) return;
         console.log('Map click event:', e.latlng);
         // If not dragging, treat as single click to select point
         if (!isDraggingRef.current) {
@@ -126,7 +120,7 @@ const MapLocationPicker: React.FC<MapPickerProps> = ({
           setPosition([lat, lng]);
           setAreaBounds(null); // clear any area selection
 
-fetch(`/api/restaurants/reverse-geocode?lat=${lat}&lon=${lng}`)
+          fetch(`/api/restaurants/reverse-geocode?lat=${lat}&lon=${lng}`)
             .then(async response => {
               const text = await response.text();
               if (!response.ok) {
@@ -159,6 +153,7 @@ fetch(`/api/restaurants/reverse-geocode?lat=${lat}&lon=${lng}`)
       // To support touch devices, add touch events
       // @ts-ignore
       touchstart: (e: any) => {
+        if (!isEditing) return;
         console.log('Map touchstart event');
         if (e.touches && e.touches.length === 1) {
           const touch = e.touches[0];
@@ -174,6 +169,7 @@ fetch(`/api/restaurants/reverse-geocode?lat=${lat}&lon=${lng}`)
       },
       // @ts-ignore
       touchend: (e: any) => {
+        if (!isEditing) return;
         console.log('Map touchend event');
         if (longPressTimeoutRef.current) {
           clearTimeout(longPressTimeoutRef.current);
@@ -195,6 +191,7 @@ fetch(`/api/restaurants/reverse-geocode?lat=${lat}&lon=${lng}`)
       },
       // @ts-ignore
       touchmove: (e: any) => {
+        if (!isEditing) return;
         if (isDraggingRef.current && e.touches && e.touches.length === 1) {
           console.log('Dragging on touchmove');
           const touch = e.touches[0];
@@ -219,13 +216,14 @@ fetch(`/api/restaurants/reverse-geocode?lat=${lat}&lon=${lng}`)
         center={position || [initialLat, initialLng]} // Agar position set nahi hai, toh initial use karein
         zoom={initialZoom}
         scrollWheelZoom={true}
-        dragging={true}
+        dragging={isEditing}
         attributionControl={false} // Disable attribution control to hide Leaflet/OpenStreetMap text
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <MapViewUpdater initialLat={initialLat} initialLng={initialLng} />
         <MapEventsHandler />
 
         {position && (
@@ -238,6 +236,9 @@ fetch(`/api/restaurants/reverse-geocode?lat=${lat}&lon=${lng}`)
               {address && `Address: ${address}`}
             </Popup>
           </Marker>
+        )}
+        {areaBounds && (
+          <Rectangle bounds={areaBounds} color="#6552FF" />
         )}
       </MapContainer>
     </div>
