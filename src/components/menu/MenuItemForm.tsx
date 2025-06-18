@@ -185,6 +185,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({
         </select>
       </div>
 
+      {/* Existing Available checkbox */}
       <div>
         <label className="flex items-center gap-2">
           <input
@@ -194,6 +195,19 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({
             className="rounded text-primary focus:ring-primary"
           />
           <span className="text-sm font-medium text-gray-700">Available</span>
+        </label>
+      </div>
+
+      {/* New Veg checkbox */}
+      <div>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={formData.isVeg}
+            onChange={e => setFormData(prev => ({ ...prev, isVeg: e.target.checked }))}
+            className="rounded text-primary focus:ring-primary"
+          />
+          <span className="text-sm font-medium text-gray-700">Veg</span>
         </label>
       </div>
 
