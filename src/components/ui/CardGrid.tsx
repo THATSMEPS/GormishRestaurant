@@ -26,7 +26,7 @@ const CardGrid: React.FC<CardGridProps> = ({
   };
 
   return (
-    <div className={`grid ${getGridCols()} gap-6 ${className}`}>
+    <div className={`grid mb-6 ${getGridCols()} gap-6 ${className}`}>
       {children}
     </div>
   );
