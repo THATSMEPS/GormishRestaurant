@@ -9,7 +9,7 @@ export interface MenuItem {
   name: string;
   description?: string;
   price: number;
-  discountedPrice?: number;
+  discountedPrice?: number | null;
   isVeg: boolean;
   packagingCharges: number;
   cuisine: string;
@@ -26,6 +26,7 @@ export interface FormData {
   name: string;
   description: string;
   price: number;
+  discountedPrice?: number | null;
   gstCategory: string;
   isAvailable: boolean;
   addons: {
