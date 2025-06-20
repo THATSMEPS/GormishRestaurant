@@ -25,3 +25,5 @@ dist-ssr
 
 .env
 MyWebViewApp
+/cypress
+cypress.config.ts

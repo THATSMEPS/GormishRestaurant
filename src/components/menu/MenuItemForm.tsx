@@ -494,7 +494,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({
         />
       </div>
 
-      <div>
+      {/* <div>
         <label className="block text-sm font-medium text-gray-700">GST Category</label>
         <select
           value={formData.gstCategory}
@@ -507,7 +507,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({
             </option>
           ))}
         </select>
-      </div>
+      </div> */}
 
       {/* Existing Available checkbox */}
       <div>

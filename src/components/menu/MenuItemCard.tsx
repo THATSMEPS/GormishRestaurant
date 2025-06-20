@@ -70,7 +70,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
             <span className="font-medium">Packaging:</span>
             <span>₹{packagingCharges ?? 0}</span>
           </div>
-          <div className="flex items-center gap-2">
+          {/* <div className="flex items-center gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5 text-gray-500"
@@ -91,7 +91,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
               />
             </svg>
             <span className="font-medium">Restaurants - 5% GST</span>
-          </div>
+          </div> */}
         </div>
 
         <div className="flex gap-4 mt-4">
