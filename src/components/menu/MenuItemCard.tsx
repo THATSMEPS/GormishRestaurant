@@ -1,6 +1,6 @@
 import React from 'react';
 import { Edit2, Trash2, Eye } from 'lucide-react';
-import { MenuItem } from '../../types/menu';
+import { MenuItem } from '../../types/menu'; // Assuming MenuItem type is defined here
 import Card from '../ui/Card';
 
 interface MenuItemCardProps {
@@ -23,7 +23,8 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   isDeleteLoading = false,
   isToggleLoading = false,
 }) => {
-  const { name, description, price, isAvailable, addons, packagingCharges, cuisine } = item;
+  // Destructure discountedPrice along with other item properties
+  const { name, description, price, isAvailable, addons, packagingCharges, cuisine, discountedPrice } = item;
 
   return (
     <Card>
@@ -50,48 +51,17 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-gray-500">₹</span>
             <span className="font-medium">Price:</span>
-            <span className="text-lg font-semibold">₹{price}</span>
+            {/* Conditional rendering for price */}
+            {discountedPrice ? (
+              <>
+                <span className="text-lg font-semibold line-through text-gray-500">₹{price}</span>
+                <span className="text-lg font-semibold text-green-600 ml-1">₹{discountedPrice}</span>
+              </>
+            ) : (
+              <span className="text-lg font-semibold">₹{price}</span>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-gray-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 10h2l1 2h13v2H6l-1 2H3v-6z"
-              />
-            </svg>
-            <span className="font-medium">Packaging:</span>
-            <span>₹{packagingCharges ?? 0}</span>
-          </div>
-          {/* <div className="flex items-center gap-2">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-gray-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 17v-2a4 4 0 014-4h4"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 17v2a4 4 0 004 4h4"
-              />
-            </svg>
-            <span className="font-medium">Restaurants - 5% GST</span>
-          </div> */}
+          
         </div>
 
         <div className="flex gap-4 mt-4">
