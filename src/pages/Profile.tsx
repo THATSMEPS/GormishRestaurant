@@ -150,11 +150,18 @@ const Profile: React.FC<ProfileProps> = ({ restaurant }) => {
         const data = response.data;
         if (data && data.id === restaurant.id) {
           localStorage.setItem('restaurant', JSON.stringify(data));
-          const normalizedCuisines = Array.isArray(data.cuisines)
-            ? data.cuisines
-            : data.cuisines
-            ? [data.cuisines]
-            : [];
+          
+          // Properly handle cuisines from API response
+          let normalizedCuisines: string[] = [];
+          if (data.cuisines) {
+            if (Array.isArray(data.cuisines)) {
+              normalizedCuisines = data.cuisines;
+            } else if (typeof data.cuisines === 'string') {
+              // Split comma-separated string and trim whitespace
+              normalizedCuisines = (data.cuisines as string).split(',').map((c: string) => c.trim()).filter((c: string) => c.length > 0);
+            }
+          }
+          
           setProfileData({
             restaurantName: data.name || '',
             email: data.email || '',
@@ -189,11 +196,17 @@ const Profile: React.FC<ProfileProps> = ({ restaurant }) => {
           try {
             const parsed = JSON.parse(storedRestaurant);
             if (parsed && parsed.id === restaurant.id) {
-              const normalizedCuisinesStored = Array.isArray(parsed.cuisines)
-                ? parsed.cuisines
-                : parsed.cuisines
-                ? [parsed.cuisines]
-                : [];
+              // Properly handle cuisines from stored data
+              let normalizedCuisinesStored: string[] = [];
+              if (parsed.cuisines) {
+                if (Array.isArray(parsed.cuisines)) {
+                  normalizedCuisinesStored = parsed.cuisines;
+                } else if (typeof parsed.cuisines === 'string') {
+                  // Split comma-separated string and trim whitespace
+                  normalizedCuisinesStored = (parsed.cuisines as string).split(',').map((c: string) => c.trim()).filter((c: string) => c.length > 0);
+                }
+              }
+              
               setProfileData({
                 restaurantName: parsed.name || '',
                 email: parsed.email || '',
@@ -360,21 +373,34 @@ const Profile: React.FC<ProfileProps> = ({ restaurant }) => {
 
       const response = await api.patch<Restaurant>(`/restaurants/${restaurant.id}`, payload);
 
-      const normalizedCuisinesResponse = Array.isArray(response.data.cuisines)
-        ? response.data.cuisines
-        : response.data.cuisines
-        ? [response.data.cuisines]
-        : [];
-
+      // Properly handle cuisines from API response
+      let normalizedCuisinesResponse: string[] = [];
+      if (response.data.cuisines) {
+        if (Array.isArray(response.data.cuisines)) {
+          normalizedCuisinesResponse = response.data.cuisines;
+        } else if (typeof response.data.cuisines === 'string') {
+          // Split comma-separated string and trim whitespace
+          normalizedCuisinesResponse = (response.data.cuisines as string).split(',').map((c: string) => c.trim()).filter((c: string) => c.length > 0);
+        }
+      }
+      
+      const data = response.data;
       setProfileData({
-        ...profileData,
-        ...response.data,
+        restaurantName: data.name || '',
+        email: data.email || '',
+        description: data.description || '',
+        address: data.address || { street: '', area: '', landmark: '', fullAddress: '', city: '', state: '', pincode: '' },
+        serving_radius: data.serving_radius || 5,
         cuisineTypes: normalizedCuisinesResponse.map((c: string) => ({ value: c, label: c })),
-        restaurantType: response.data.restaurantType ? { value: response.data.restaurantType, label: response.data.restaurantType } : null,
-        address: response.data.address || profileData.address,
-        banners: response.data.banners || profileData.banners,
-        hours: response.data.hours || operatingHours,
-        areaId: response.data.areaId !== undefined ? response.data.areaId : profileData.areaId,
+        restaurantType: data.restaurantType ? { value: data.restaurantType, label: data.restaurantType } : null,
+        phone: data.mobile || '',
+        website: data.website || '',
+        gstNumber: data.gstNumber || '',
+        fssaiNumber: data.fssaiNumber || '',
+        banners: data.banners || [],
+        hours: data.hours || {},
+        vegNonveg: data.vegNonveg || 'both',
+        areaId: data.areaId || '',
       });
       setOperatingHours(response.data.hours || operatingHours);
       localStorage.setItem('restaurant', JSON.stringify(response.data));
@@ -837,6 +863,7 @@ const Profile: React.FC<ProfileProps> = ({ restaurant }) => {
               <CuisineSelector
                 selectedCuisines={profileData.cuisineTypes}
                 onChange={(value) => setProfileData({ ...profileData, cuisineTypes: value })}
+                isDisabled={!isEditing}
               />
             </div>
           </div>

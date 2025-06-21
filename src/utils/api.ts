@@ -8,6 +8,11 @@ const api = axios.create({
   },
 });
 
+export interface Cuisine {
+  id: string;
+  cuisineName: string;
+}
+
 export const uploadBannerImage = async (restaurantId: string, file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -36,13 +41,18 @@ export const uploadBannerImageSignup = async (file: File): Promise<string> => {
   return response.data.data.publicUrl || '';
 };
 
+export const getCuisines = async (): Promise<Cuisine[]> => {
+  const response = await api.get('/cuisines');
+  return response.data.data || [];
+};
+
 // Request interceptor to add JWT token
 api.interceptors.request.use(
   (config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)

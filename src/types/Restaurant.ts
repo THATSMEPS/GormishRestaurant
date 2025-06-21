@@ -20,7 +20,7 @@ export interface Restaurant {
   email: string;
   mobile: string;
   description?: string;
-  cuisines: string[];
+  cuisines: string[] | string;
   vegNonveg: 'veg' | 'nonveg' | 'both';
   hours: {
     Monday: OperatingHours;
