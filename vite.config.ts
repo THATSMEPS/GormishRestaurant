@@ -10,7 +10,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/restaurants': {
-        target: 'https://gormishbackend.onrender.com', // Your backend server URL
+        target: 'https://backendgormish.onrender.com', // Your backend server URL
+        // target: 'http://localhost:3000', // Local development server URL
         changeOrigin: true,
         
       },

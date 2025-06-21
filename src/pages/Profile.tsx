@@ -242,7 +242,7 @@ const Profile: React.FC<ProfileProps> = ({ restaurant }) => {
     };
 
     fetchRestaurantData();
-  }, [restaurant.id]);
+  }, []);
 
   // Fetch area options
   useEffect(() => {
@@ -373,41 +373,46 @@ const Profile: React.FC<ProfileProps> = ({ restaurant }) => {
 
       const response = await api.patch<Restaurant>(`/restaurants/${restaurant.id}`, payload);
 
-      // Properly handle cuisines from API response
-      let normalizedCuisinesResponse: string[] = [];
-      if (response.data.cuisines) {
-        if (Array.isArray(response.data.cuisines)) {
-          normalizedCuisinesResponse = response.data.cuisines;
-        } else if (typeof response.data.cuisines === 'string') {
-          // Split comma-separated string and trim whitespace
-          normalizedCuisinesResponse = (response.data.cuisines as string).split(',').map((c: string) => c.trim()).filter((c: string) => c.length > 0);
+      // After patch, fetch latest restaurant data
+      const getResponse = await api.get<Restaurant>(`/restaurants/${restaurant.id}`);
+      const latestData = getResponse.data;
+
+      // Properly handle cuisines from GET response
+      let normalizedCuisinesGet: string[] = [];
+      if (latestData.cuisines) {
+        if (Array.isArray(latestData.cuisines)) {
+          normalizedCuisinesGet = latestData.cuisines;
+        } else if (typeof latestData.cuisines === 'string') {
+          normalizedCuisinesGet = (latestData.cuisines as string).split(',').map((c: string) => c.trim()).filter((c: string) => c.length > 0);
         }
       }
-      
-      const data = response.data;
+
       setProfileData({
-        restaurantName: data.name || '',
-        email: data.email || '',
-        description: data.description || '',
-        address: data.address || { street: '', area: '', landmark: '', fullAddress: '', city: '', state: '', pincode: '' },
-        serving_radius: data.serving_radius || 5,
-        cuisineTypes: normalizedCuisinesResponse.map((c: string) => ({ value: c, label: c })),
-        restaurantType: data.restaurantType ? { value: data.restaurantType, label: data.restaurantType } : null,
-        phone: data.mobile || '',
-        website: data.website || '',
-        gstNumber: data.gstNumber || '',
-        fssaiNumber: data.fssaiNumber || '',
-        banners: data.banners || [],
-        hours: data.hours || {},
-        vegNonveg: data.vegNonveg || 'both',
-        areaId: data.areaId || '',
+        restaurantName: latestData.name || '',
+        email: latestData.email || '',
+        description: latestData.description || '',
+        address: latestData.address || { street: '', area: '', landmark: '', fullAddress: '', city: '', state: '', pincode: '' },
+        serving_radius: latestData.serving_radius || 5,
+        cuisineTypes: normalizedCuisinesGet.map((c: string) => ({ value: c, label: c })),
+        restaurantType: latestData.restaurantType ? { value: latestData.restaurantType, label: latestData.restaurantType } : null,
+        phone: latestData.mobile || '',
+        website: latestData.website || '',
+        gstNumber: latestData.gstNumber || '',
+        fssaiNumber: latestData.fssaiNumber || '',
+        banners: latestData.banners || [],
+        hours: latestData.hours || {},
+        vegNonveg: latestData.vegNonveg || 'both',
+        areaId: latestData.areaId || '',
       });
-      setOperatingHours(response.data.hours || operatingHours);
-      localStorage.setItem('restaurant', JSON.stringify(response.data));
+      setOperatingHours(latestData.hours || operatingHours);
+      localStorage.setItem('restaurant', JSON.stringify(latestData));
       toast.success('Profile updated successfully!');
       setIsEditing(false);
       setIsEditingImage(false);
       setImageFiles([]);
+
+      // Force a soft refresh of the current route
+      navigate('/profile', { replace: true });
     } catch (err) {
       // Error handled by Axios interceptor
     } finally {
@@ -475,11 +480,11 @@ const Profile: React.FC<ProfileProps> = ({ restaurant }) => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-4xl mx-auto pb-24 md:pb-12"
-    >
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    className="max-w-4xl mx-auto pb-24 md:pb-12"
+  >
       {/* Header Section */}
       <motion.div
         initial={{ y: -20 }}
